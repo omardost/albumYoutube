@@ -1,23 +1,50 @@
 <script setup>
 import { ref } from "vue";
+import SvgIcon from '@jamescoyle/vue-icon';
+import { mdiAccount } from '@mdi/js';
 const arrayVideos = ref([]);
 const urlYoutube = 'https://www.youtube.com/watch?v=';
+const urlYoutube2 = 'https://youtu.be/';
 const urlInput = ref('');
 const videoDelete = ref(0);
 const viewVideo = ref();
+const message = ref('');
+const stateVideo = ref(true);
 
 const loadVideo = async () => {
+  message.value = '';
   console.log(urlInput.value);
-  const idVideo = urlInput.value.replace(urlYoutube, '');
+  let idVideo = urlInput.value.replace(urlYoutube, '');
+  idVideo = idVideo.replace(urlYoutube2, '');
 
   const urlVideo = 'https://www.googleapis.com/youtube/v3/videos?id='.concat(idVideo).concat('&key=AIzaSyDSSkdkVVWm5XPz2TS6q2KiUbud3rlOU3k&part=snippet');
 
   const response = await fetch(urlVideo);
   const data = await response.json();
-  arrayVideos.value.push(data);
+
+  validateVideo(data);
+  if (stateVideo.value) {
+    arrayVideos.value.push(data);
+  } else {
+    message.value = 'Video repetido';
+    return;
+  }
   urlInput.value = '';
   console.log(data);
 
+  if (data.items.length === 0) {
+    message.value = 'No existe video';
+  }
+
+}
+
+const validateVideo = (data) => {
+  const videoFind = arrayVideos.value.find((video) => video.etag === data.etag);
+  if (videoFind) {
+    stateVideo.value = false;
+  } else {
+    stateVideo.value = true;
+  }
 }
 
 const deleteAdd = (data) => {
@@ -44,10 +71,14 @@ const viewAction = (data) => {
     <button class="btn btn-primary" type="button" id="button-addon2" @click="loadVideo">Añadir</button>
   </div>
 
+  <section v-if="message !== ''">
+    * {{ message }}
+  </section>
+
   <!-- lista de videos -->
   <template v-for="(video, index) in  arrayVideos " :key="video.etag">
 
-    <section class="button-container">
+    <section v-if="video.items.length > 0" class="button-container">
       <img :alt="video.etag" :src="video.items[0].snippet.thumbnails.medium.url" @click="viewAction(video)"
         data-bs-toggle="modal" data-bs-target="#exampleModal1">
       <a @click="deleteAdd(index)" data-bs-toggle="modal" data-bs-target="#exampleModal" title="Eliminar">X</a>
@@ -82,11 +113,11 @@ const viewAction = (data) => {
           <template v-if="viewVideo">
             <div style="display: flex; align-items: center">
 
-              <div style="cursor: pointer;" title="Reproducir">
-                <a :href="urlYoutube.concat(viewVideo.items[0].id)">
+              <div style="cursor: pointer;" title="Reproducir" class="button-play">
 
-                  <img :alt="viewVideo.etag" :src="viewVideo.items[0].snippet.thumbnails.medium.url">
-                </a>
+                <img :alt="viewVideo.etag" :src="viewVideo.items[0].snippet.thumbnails.medium.url">
+                <a :href="urlYoutube.concat(viewVideo.items[0].id)" title="Reproducir"><fa icon="play"></fa></a>
+
               </div>
               <div style="padding: 10px;">
                 <h1>{{ viewVideo.items[0].snippet.title }}</h1>
@@ -117,6 +148,24 @@ const viewAction = (data) => {
   color: white !important;
   text-transform: uppercase;
   padding: 0.2em 0.5em;
+  cursor: pointer;
+}
+
+.button-play {
+  display: inline-block;
+  position: relative;
+  padding: 10px;
+}
+
+.button-play a {
+  position: absolute;
+  bottom: 5em;
+  right: 9em;
+  background-color: #ff0000;
+  border-radius: 30px;
+  color: white !important;
+  text-transform: uppercase;
+  padding: 1.2em 1.5em;
   cursor: pointer;
 }
 </style>
